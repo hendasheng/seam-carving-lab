@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Seam Carving</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#111; color:#999; font:13px system-ui,sans-serif; padding:20px 24px; }
+  h1 { font-size:16px; font-weight:500; color:#e94560; margin-bottom:14px; }
+
+  .row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
+  .row-1 { margin-bottom:8px; }
+  .row-1 .group { display:flex; gap:6px; align-items:center; }
+  .row-1 .sep { width:1px; height:20px; background:#2a2a2a; margin:0 6px; }
+  .row-2 { margin-bottom:14px; }
+
+  button, .ubtn { padding:5px 12px; border:0; border-radius:4px; cursor:pointer; font-size:12px; background:#222; color:#999; }
+  .ubtn { display:inline-block; position:relative; }
+  .ubtn input { opacity:0; position:absolute; inset:0; cursor:pointer; }
+  button:hover { background:#2a2a2a; color:#ccc; }
+  button:disabled { opacity:0.3; pointer-events:none; }
+  button.a { background:#e94560; color:#fff; }
+  button.a:hover { background:#ff5a75; }
+  button.on { background:#333; color:#fff; }
+  button.g { color:#2ecc71; }
+  button.r { color:#e74c3c; }
+
+  label { font-size:11px; color:#666; }
+  label b { font-weight:500; color:#aaa; }
+  input[type=range] { accent-color:#e94560; width:90px; }
+  input[type=range].s { width:60px; }
+
+  .main { display:flex; gap:12px; }
+  .panel { flex:1; min-width:0; }
+  .panel h3 { font-size:11px; font-weight:400; color:#555; margin-bottom:5px; }
+  .panel .wrap { width:100%; aspect-ratio:380/280; background:#000; border-radius:2px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .panel canvas { display:block; max-width:100%; max-height:100%; }
+
+  .info { font-size:11px; color:#555; margin-top:10px; }
+  .info b { font-weight:500; color:#aaa; }
+  .info em { font-style:normal; color:#e94560; }
+</style>
+</head>
+<body>
+
+<h1>Seam Carving</h1>
+
+<div class="row row-1">
+  <div class="group">
+    <label class="ubtn">上传图片<input type="file" accept="image/*" id="fi"></label>
+  </div>
+  <span class="sep"></span>
+  <div class="group">
+    <label>缩减 <b id="cc">30</b></label>
+    <input type="range" min="1" max="200" value="30" id="cr">
+  </div>
+  <div class="group">
+    <label>速度</label>
+    <input type="range" min="1" max="10" value="5" id="sr">
+  </div>
+  <span class="sep"></span>
+  <button id="cv" class="a" disabled>移除</button>
+  <button id="rst" disabled>重置</button>
+</div>
+
+<div class="row row-2">
+  <label>遮罩</label>
+  <button id="mo" class="on">关</button>
+  <button id="mp" class="g">保护</button>
+  <button id="mr" class="r">移除</button>
+  <label>笔刷</label>
+  <input type="range" min="3" max="30" value="12" id="bs" class="s">
+  <button id="clr">清除遮罩</button>
+</div>
+
+<div class="main">
+  <div class="panel"><h3>能量图（涂抹遮罩）</h3><div class="wrap"><canvas id="ec"></canvas></div></div>
+  <div class="panel"><h3>Seam 寻找</h3><div class="wrap"><canvas id="sc"></canvas></div></div>
+  <div class="panel"><h3>结果</h3><div class="wrap"><canvas id="rc"></canvas></div></div>
+</div>
+
+<div class="info">
+  原始 <b id="os">—</b> &nbsp;·&nbsp; 当前 <b id="cs">—</b> &nbsp;·&nbsp; 已移除 <em id="rm">0</em>
+</div>
+
+<script>
+  const MW = 380, MH = 280;
+  let img, iD, eD, mD;
+  let carving = false, paused = false;
+  let mm = 'none', bs = 12, drawing = false;
+
+  const ec = document.getElementById('ec'), sc = document.getElementById('sc'), rc = document.getElementById('rc');
+  const ex = ec.getContext('2d'), sx = sc.getContext('2d'), rx = rc.getContext('2d');
+
+  // init canvases to default size
+  [ec, sc, rc].forEach(c => { c.width = MW; c.height = MH; });
+
+  function fit() {
+    let w = img.width, h = img.height;
+    if (w > MW || h > MH) { const s = Math.min(MW/w, MH/h); w = Math.round(w*s); h = Math.round(h*s); }
+    return { w, h };
+  }
+
+  // ---- energy ----
+  function compE() {
+    const { width: w, height: h, data: d } = iD;
+    eD = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const xl = Math.max(x - 1, 0), xr = Math.min(x + 1, w - 1);
+      const yt = Math.max(y - 1, 0), yb = Math.min(y + 1, h - 1);
+      const i  = (y*w + x)*4,   il = (y*w + xl)*4, ir = (y*w + xr)*4;
+      const it = (yt*w + x)*4, ib = (yb*w + x)*4;
+      const dx = (d[ir]-d[il])**2 + (d[ir+1]-d[il+1])**2 + (d[ir+2]-d[il+2])**2;
+      const dy = (d[ib]-d[it])**2 + (d[ib+1]-d[it+1])**2 + (d[ib+2]-d[it+2])**2;
+      eD[y*w + x] = Math.sqrt(dx + dy) + mD[y*w + x];
+    }
+  }
+
+  // ---- DP seam ----
+  function findS() {
+    const { width: w, height: h } = iD;
+    const dp = new Float32Array(w * h), tr = new Int32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const idx = y*w + x, base = Math.abs(eD[idx]);
+      if (y === 0) { dp[idx] = base; tr[idx] = x; continue; }
+      let best = dp[(y-1)*w + x], bx = x;
+      if (x > 0   && dp[(y-1)*w + x-1] < best) { best = dp[(y-1)*w + x-1]; bx = x-1; }
+      if (x < w-1 && dp[(y-1)*w + x+1] < best) { best = dp[(y-1)*w + x+1]; bx = x+1; }
+      dp[idx] = base + best; tr[idx] = bx;
+    }
+    let mx = 0;
+    for (let x = 1; x < w; x++) if (dp[(h-1)*w + x] < dp[(h-1)*w + mx]) mx = x;
+    const s = new Int32Array(h); let cx = mx;
+    for (let y = h-1; y >= 0; y--) { s[y] = cx; cx = tr[y*w + cx]; }
+    return s;
+  }
+
+  // ---- remove seam ----
+  function rmS(seam) {
+    const w = iD.width, h = iD.height, nw = w - 1;
+    if (nw < 1) return;
+    const nd = new Uint8ClampedArray(nw * h * 4), nm = new Float32Array(nw * h);
+    for (let y = 0; y < h; y++) {
+      const sx = seam[y];
+      for (let x = 0; x < nw; x++) {
+        const s = x < sx ? x : x + 1, a = (y*nw + x)*4, b = (y*w + s)*4;
+        nd[a]=iD.data[b]; nd[a+1]=iD.data[b+1]; nd[a+2]=iD.data[b+2]; nd[a+3]=255;
+      }
+      for (let x = 0; x < nw; x++) {
+        const s = x < sx ? x : x + 1;
+        nm[y*nw + x] = mD[y*w + s];
+      }
+    }
+    iD = new ImageData(nd, nw, h);
+    mD = nm;
+    compE();
+  }
+
+  // ---- render ----
+  function draw(seam) {
+    const w = iD.width, h = iD.height;
+    // resize canvases to match image
+    [ec, sc, rc].forEach(c => { c.width = w; c.height = h; });
+
+    // energy canvas
+    const ed = ex.createImageData(w, h);
+    let me = 0;
+    for (let i = 0; i < eD.length; i++) { const v = Math.abs(eD[i]); if (v < 1e5 && v > me) me = v; }
+    if (me === 0) me = 1;
+    for (let i = 0; i < eD.length; i++) {
+      const ei = i*4, ev = eD[i];
+      let r, g, b;
+      if (ev > 1e5)      { r = 60; g = 255; b = 60; }
+      else if (ev < -1e5) { r = 255; g = 60; b = 60; }
+      else {
+        const t = Math.min((Math.abs(ev) / me) ** 0.5, 1);
+        r = Math.floor(Math.min(t*3, 1) * 255);
+        g = Math.floor(Math.max(0, Math.min((t-0.33)*3, 1)) * 255);
+        b = Math.floor(Math.max(0, Math.min((t-0.66)*3, 1)) * 255);
+      }
+      ed.data[ei]=r; ed.data[ei+1]=g; ed.data[ei+2]=b; ed.data[ei+3]=255;
+    }
+    ex.putImageData(ed, 0, 0);
+
+    // result canvas
+    rx.putImageData(iD, 0, 0);
+
+    // seam canvas
+    sx.putImageData(iD, 0, 0);
+    if (seam && seam.length) {
+      sx.strokeStyle = '#0f0'; sx.lineWidth = 1.5; sx.beginPath();
+      sx.moveTo(seam[0] + 0.5, 0);
+      for (let y = 1; y < h; y++) sx.lineTo(seam[y] + 0.5, y);
+      sx.stroke();
+      sx.fillStyle = '#ff0';
+      sx.beginPath(); sx.arc(seam[0], 0, 3, 0, Math.PI*2); sx.fill();
+      sx.beginPath(); sx.arc(seam[h-1], h-1, 3, 0, Math.PI*2); sx.fill();
+    }
+  }
+
+  // ---- mask paint ----
+  ec.addEventListener('mousedown', e => { if (mm === 'none' || !mD) return; drawing = true; paint(e); });
+  ec.addEventListener('mousemove', e => { if (drawing && mD) paint(e); });
+  document.addEventListener('mouseup', () => { drawing = false; });
+
+  function paint(e) {
+    const r = ec.getBoundingClientRect();
+    const scaleX = ec.width / r.width, scaleY = ec.height / r.height;
+    const cx = Math.round((e.clientX - r.left) * scaleX);
+    const cy = Math.round((e.clientY - r.top) * scaleY);
+    const { width: w, height: h } = iD;
+    const val = mm === 'protect' ? 1e6 : -1e6;
+    for (let dy = -bs; dy <= bs; dy++) for (let dx = -bs; dx <= bs; dx++) {
+      if (dx*dx + dy*dy > bs*bs) continue;
+      const px = cx + dx, py = cy + dy;
+      if (px >= 0 && px < w && py >= 0 && py < h) mD[py*w + px] = val;
+    }
+    compE(); draw(null);
+  }
+
+  // ---- init ----
+  function init() {
+    carving = false; paused = false;
+    const { w, h } = fit();
+    // draw image scaled
+    [ec, sc, rc].forEach(c => { c.width = w; c.height = h; });
+    rx.drawImage(img, 0, 0, w, h);
+    iD = rx.getImageData(0, 0, w, h);
+    mD = new Float32Array(w * h);
+    compE(); draw(null);
+    document.getElementById('os').textContent = `${img.width}×${img.height}`;
+    document.getElementById('cs').textContent = `${w}×${h}`;
+    document.getElementById('rm').textContent = '0';
+    document.getElementById('rst').disabled = false;
+    document.getElementById('cv').disabled = false;
+    document.getElementById('cv').textContent = '移除';
+  }
+
+  // ---- controls ----
+  document.getElementById('fi').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => { img = new Image(); img.onload = init; img.src = fr.result; };
+    fr.readAsDataURL(f);
+  });
+  document.getElementById('cr').addEventListener('input', function() { document.getElementById('cc').textContent = this.value; });
+  document.getElementById('bs').addEventListener('input', function() { bs = parseInt(this.value); });
+
+  function sm(m) {
+    mm = m;
+    document.getElementById('mo').classList.toggle('on', m === 'none');
+    document.getElementById('mp').classList.toggle('on', m === 'protect');
+    document.getElementById('mr').classList.toggle('on', m === 'remove');
+    ec.style.cursor = m === 'none' ? 'default' : 'crosshair';
+  }
+  sm('none');
+  document.getElementById('mo').addEventListener('click', () => sm('none'));
+  document.getElementById('mp').addEventListener('click', () => sm('protect'));
+  document.getElementById('mr').addEventListener('click', () => sm('remove'));
+  document.getElementById('clr').addEventListener('click', () => { if (mD) { mD.fill(0); compE(); draw(null); } });
+
+  // ---- carve ----
+  document.getElementById('cv').addEventListener('click', () => {
+    if (carving) { paused = true; return; }
+    if (!iD) return;
+    carving = true; paused = false;
+    document.getElementById('cv').textContent = '暂停';
+    const n = parseInt(document.getElementById('cr').value);
+    st(n, n);
+  });
+  document.getElementById('rst').addEventListener('click', () => { paused = true; init(); });
+
+  function st(rem, total) {
+    if (paused || rem <= 0 || iD.width <= 1) {
+      carving = false;
+      document.getElementById('cv').textContent = '移除';
+      draw(null);
+      return;
+    }
+    const spd = parseInt(document.getElementById('sr').value);
+    const batch = spd >= 8 ? 3 : 1;
+    const ms = [200, 150, 100, 60, 30, 15, 8, 4, 2, 0][spd - 1];
+    let ls = null;
+    for (let b = 0; b < batch && rem - b > 0 && iD.width > 1; b++) { ls = findS(); rmS(ls); }
+    draw(ls);
+    document.getElementById('rm').textContent = total - rem + batch;
+    document.getElementById('cs').textContent = `${iD.width}×${iD.height}`;
+    setTimeout(() => st(rem - batch, total), ms);
+  }
+</script>
+</body>
+</html>
