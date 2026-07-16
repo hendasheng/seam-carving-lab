@@ -4,88 +4,20 @@
 <meta charset="UTF-8">
 <title>Seam Carving</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#111; color:#999; font:13px system-ui,sans-serif; padding:20px 24px; }
-  h1 { font-size:16px; font-weight:500; color:#e94560; margin-bottom:14px; }
-
-  .row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
-  .row-1 { margin-bottom:8px; }
-  .row-1 .group { display:flex; gap:6px; align-items:center; }
-  .row-1 .sep { width:1px; height:20px; background:#2a2a2a; margin:0 6px; }
-  .row-2 { margin-bottom:14px; }
-
-  button, .ubtn { padding:5px 12px; border:0; border-radius:4px; cursor:pointer; font-size:12px; background:#222; color:#999; }
-  .ubtn { display:inline-block; position:relative; }
-  .ubtn input { opacity:0; position:absolute; inset:0; cursor:pointer; }
-  button:hover { background:#2a2a2a; color:#ccc; }
-  button:disabled { opacity:0.3; pointer-events:none; }
-  button.a { background:#e94560; color:#fff; }
-  button.a:hover { background:#ff5a75; }
-  button.on { background:#333; color:#fff; }
-  button.g { color:#2ecc71; }
-  button.r { color:#e74c3c; }
-
-  label { font-size:11px; color:#666; }
-  label b { font-weight:500; color:#aaa; }
-  input[type=range] { accent-color:#e94560; width:90px; }
-  input[type=range].s { width:60px; }
-
-  .main { display:flex; gap:12px; }
-  .panel { flex:1; min-width:0; }
-  .panel h3 { font-size:11px; font-weight:400; color:#555; margin-bottom:5px; }
-  .panel .wrap { width:100%; aspect-ratio:380/280; background:#000; border-radius:2px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .panel canvas { display:block; max-width:100%; max-height:100%; }
-
-  .info { font-size:11px; color:#555; margin-top:10px; }
-  .info b { font-weight:500; color:#aaa; }
-  .info em { font-style:normal; color:#e94560; }
+:root{color-scheme:dark;--bg:#090b10;--panel:#11141b;--raised:#191d27;--line:#282e3b;--text:#eef1f6;--muted:#8b93a5;--accent:#ff4d6d;--green:#3ddc97;--red:#ff647c}*{box-sizing:border-box}body{margin:0;min-width:320px;background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,sans-serif;overflow:hidden}button,input{font:inherit}.app{height:100vh;display:grid;grid-template-rows:64px minmax(0,1fr) 34px}.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line);background:#0d1016}.brand{margin-right:auto}.brand h1{margin:0;font-size:16px}.brand small{color:var(--muted)}button,.ubtn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:7px;background:var(--raised);color:#cdd2dc;cursor:pointer;font-weight:600;font-size:12px;transition:.15s}button:hover,.ubtn:hover{border-color:#465065;color:white}button:disabled{opacity:.35;pointer-events:none}.ubtn input{position:absolute;inset:0;opacity:0;cursor:pointer}.primary{background:var(--accent);border-color:var(--accent);color:white}.workspace{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:0}.sidebar{padding:16px;border-right:1px solid var(--line);background:var(--panel);overflow:auto}.section{padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--line)}.section:last-child{border:0}.section h2{margin:0 0 12px;color:#aeb5c3;font-size:11px;text-transform:uppercase;letter-spacing:.1em}.field{margin:11px 0}.field-head{display:flex;justify-content:space-between;margin-bottom:7px;color:var(--muted);font-size:12px}.field-head b{color:var(--text)}input[type=range]{width:100%;accent-color:var(--accent)}.segmented{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.segmented button{padding:0 5px}.segmented button.on{background:#343b4a;border-color:#566175;color:white}.segmented .g{color:var(--green)}.segmented .r{color:var(--red)}.sidebar-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sidebar-actions .primary{grid-column:1/-1;height:40px}.stage-column{min-width:0;min-height:0;display:grid;grid-template-rows:48px minmax(0,1fr);background:#07090d}.viewbar{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid var(--line);gap:6px}.viewbar button{height:32px;background:transparent;border-color:transparent}.viewbar button.on{background:var(--raised);border-color:var(--line);color:white}.zoom-tools{display:flex;align-items:center;gap:5px;margin-left:auto}.zoom-tools output{min-width:48px;text-align:center;color:var(--muted);font-size:12px}.stage{position:relative;min-height:0;overflow:hidden;display:grid;grid-template-columns:minmax(180px,var(--split-x,50%)) minmax(180px,1fr);grid-template-rows:minmax(170px,var(--split-y,46%)) minmax(180px,1fr);gap:1px;background-color:#0b0e14;background-image:linear-gradient(45deg,#111621 25%,transparent 25%),linear-gradient(-45deg,#111621 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#111621 75%),linear-gradient(-45deg,transparent 75%,#111621 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;cursor:default}.stage.panning{cursor:grabbing}.stage.resizing{user-select:none}.compare-pane{position:relative;min-width:0;overflow:hidden;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-rows:30px minmax(0,1fr)}.compare-pane.active .pane-head{background:#2a1d27;color:white;border-bottom-color:var(--accent)}.compare-pane:nth-of-type(2){border-right:0}.result-pane{grid-column:1/-1;border-right:0;border-bottom:0}.pane-head{position:relative;z-index:2;display:flex;align-items:center;height:30px;padding:0 10px;border-bottom:1px solid var(--line);background:#0d1016;color:#aeb5c3;font-size:11px;font-weight:700;letter-spacing:.02em;pointer-events:none}.canvas-layer{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}.canvas-layer canvas{display:block;max-width:none;max-height:none}.splitter{position:absolute;z-index:8;background:transparent}.splitter:hover,.splitter.active{background:#ffffff26}.splitter-v{left:var(--split-x,50%);top:0;width:7px;height:var(--split-y,46%);margin-left:-4px;cursor:col-resize}.splitter-h{left:0;right:0;top:var(--split-y,46%);height:7px;margin-top:-4px;cursor:row-resize}.empty{position:absolute;z-index:10;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);pointer-events:none}.empty[hidden]{display:none}.empty strong{color:#dce1ea;font-size:17px;margin-bottom:5px}.statusbar{display:flex;align-items:center;gap:18px;padding:0 18px;border-top:1px solid var(--line);background:#0d1016;color:var(--muted);font-size:11px}.statusbar b{color:#dce1ea}.statusbar em{color:var(--accent);font-style:normal}.progress{margin-left:auto}.hint{color:#5f687a}@media(max-width:1050px){.stage{grid-template-columns:minmax(180px,var(--split-x,50%)) minmax(180px,1fr);grid-template-rows:minmax(170px,var(--split-y,46%)) minmax(180px,1fr)}.compare-pane{min-height:220px}}@media(max-width:760px){body{overflow:auto}.app{height:auto;min-height:100vh;grid-template-rows:auto auto 34px}.topbar{padding:12px;flex-wrap:wrap}.brand{flex:1 0 60%}.workspace{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid var(--line)}.stage-column{height:78vh}.stage{grid-template-columns:1fr;grid-template-rows:repeat(3,minmax(240px,1fr));overflow:auto}.result-pane{grid-column:auto}.splitter{display:none}.compare-pane{min-height:270px;border-right:0;border-bottom:1px solid var(--line)}.hint{display:none}}
 </style>
 </head>
-<body>
-
-<h1>Seam Carving</h1>
-
-<div class="row row-1">
-  <div class="group">
-    <label class="ubtn">上传图片<input type="file" accept="image/*" id="fi"></label>
-  </div>
-  <span class="sep"></span>
-  <div class="group">
-    <label>缩减 <b id="cc">30</b></label>
-    <input type="range" min="1" max="200" value="30" id="cr">
-  </div>
-  <div class="group">
-    <label>速度</label>
-    <input type="range" min="1" max="10" value="5" id="sr">
-  </div>
-  <span class="sep"></span>
-  <button id="cv" class="a" disabled>移除</button>
-  <button id="rst" disabled>重置</button>
-</div>
-
-<div class="row row-2">
-  <label>遮罩</label>
-  <button id="mo" class="on">关</button>
-  <button id="mp" class="g">保护</button>
-  <button id="mr" class="r">移除</button>
-  <label>笔刷</label>
-  <input type="range" min="3" max="30" value="12" id="bs" class="s">
-  <button id="clr">清除遮罩</button>
-</div>
-
-<div class="main">
-  <div class="panel"><h3>能量图（涂抹遮罩）</h3><div class="wrap"><canvas id="ec"></canvas></div></div>
-  <div class="panel"><h3>Seam 寻找</h3><div class="wrap"><canvas id="sc"></canvas></div></div>
-  <div class="panel"><h3>结果</h3><div class="wrap"><canvas id="rc"></canvas></div></div>
-</div>
-
-<div class="info">
-  原始 <b id="os">—</b> &nbsp;·&nbsp; 当前 <b id="cs">—</b> &nbsp;·&nbsp; 已移除 <em id="rm">0</em>
-</div>
-
+<body><div class="app">
+<header class="topbar"><div class="brand"><h1>Seam Carving Lab</h1><small>内容感知图像缩放</small></div><label class="ubtn">上传图片<input type="file" accept="image/*" id="fi"></label><button id="rst" disabled>重置</button><button class="primary" id="export" disabled>导出结果</button></header>
+<div class="workspace"><aside class="sidebar">
+<section class="section"><h2>调整尺寸</h2><div class="field"><div class="field-head"><span>移除竖向 Seam</span><b><span id="cc">30</span> px</b></div><input type="range" min="1" max="200" value="30" id="cr"></div><div class="field"><div class="field-head"><span>处理速度</span><b id="speedValue">5</b></div><input type="range" min="1" max="10" value="5" id="sr"></div></section>
+<section class="section"><h2>区域遮罩</h2><div class="segmented"><button id="mo" class="on">关闭</button><button id="mp" class="g">保护</button><button id="mr" class="r">移除</button></div><div class="field"><div class="field-head"><span>笔刷大小</span><b id="brushValue">12 px</b></div><input type="range" min="3" max="60" value="12" id="bs"></div><button id="clr">清除遮罩</button></section>
+<div class="sidebar-actions"><button class="primary" id="cv" disabled>开始处理</button></div></aside>
+<main class="stage-column"><nav class="viewbar"><strong>同步对比</strong><span class="hint">上方对照能量与路径，下方查看结果</span><div class="zoom-tools"><button id="zoomOut" title="缩小">−</button><output id="zoomLabel">适应</output><button id="zoomIn" title="放大">＋</button><button id="zoomFit">适应</button><button id="zoom100">100%</button></div></nav><div class="stage" id="stage"><div class="empty" id="empty"><strong>打开一张图片开始</strong><span>支持拖放或点击“上传图片”</span></div><section class="compare-pane energy-pane"><div class="pane-head">能量图</div><div class="canvas-layer" id="energy"><canvas id="ec"></canvas></div></section><section class="compare-pane seam-pane"><div class="pane-head">Seam 路径</div><div class="canvas-layer" id="seam"><canvas id="sc"></canvas></div></section><section class="compare-pane result-pane"><div class="pane-head">处理结果</div><div class="canvas-layer" id="result"><canvas id="rc"></canvas></div></section><div class="splitter splitter-v" id="splitV" aria-hidden="true"></div><div class="splitter splitter-h" id="splitH" aria-hidden="true"></div></div></main></div>
+<footer class="statusbar"><span>原始 <b id="os">—</b></span><span>当前 <b id="cs">—</b></span><span>已移除 <em id="rm">0</em></span><span class="hint">滚轮缩放当前视图 · 拖动图片或分割线</span><span class="progress" id="runState">等待图片</span></footer></div>
 <script>
-  const MW = 380, MH = 280;
   let img, iD, eD, mD;
+  let exportW = 0, exportH = 0, inputScale = 1;
   let carving = false, paused = false;
   let mm = 'none', bs = 12, drawing = false;
 
@@ -93,12 +25,17 @@
   const ex = ec.getContext('2d'), sx = sc.getContext('2d'), rx = rc.getContext('2d');
 
   // init canvases to default size
-  [ec, sc, rc].forEach(c => { c.width = MW; c.height = MH; });
 
+  const MAX_INPUT_EDGE = 2048;
   function fit() {
-    let w = img.width, h = img.height;
-    if (w > MW || h > MH) { const s = Math.min(MW/w, MH/h); w = Math.round(w*s); h = Math.round(h*s); }
-    return { w, h };
+    const sw = img.naturalWidth || img.width;
+    const sh = img.naturalHeight || img.height;
+    const scale = Math.min(1, MAX_INPUT_EDGE / Math.max(sw, sh));
+    return {
+      w: Math.max(1, Math.round(sw * scale)),
+      h: Math.max(1, Math.round(sh * scale)),
+      scale
+    };
   }
 
   // ---- energy ----
@@ -188,14 +125,16 @@
     // seam canvas
     sx.putImageData(iD, 0, 0);
     if (seam && seam.length) {
-      sx.strokeStyle = '#0f0'; sx.lineWidth = 1.5; sx.beginPath();
+      sx.lineJoin = 'round'; sx.lineCap = 'round'; sx.beginPath();
       sx.moveTo(seam[0] + 0.5, 0);
       for (let y = 1; y < h; y++) sx.lineTo(seam[y] + 0.5, y);
-      sx.stroke();
+      const seamZoom = viewState?.seam?.zoom || 1;
+      sx.strokeStyle = '#00ff9d'; sx.lineWidth = Math.max(2.5 / seamZoom, 1.5); sx.stroke();
       sx.fillStyle = '#ff0';
       sx.beginPath(); sx.arc(seam[0], 0, 3, 0, Math.PI*2); sx.fill();
       sx.beginPath(); sx.arc(seam[h-1], h-1, 3, 0, Math.PI*2); sx.fill();
     }
+    applyView();
   }
 
   // ---- mask paint ----
@@ -220,20 +159,31 @@
 
   // ---- init ----
   function init() {
-    carving = false; paused = false;
-    const { w, h } = fit();
+    carving = false; paused = false; previewSeam = null;
+    const { w, h, scale } = fit();
+    exportW = img.naturalWidth || img.width;
+    exportH = img.naturalHeight || img.height;
+    inputScale = scale;
     // draw image scaled
     [ec, sc, rc].forEach(c => { c.width = w; c.height = h; });
     rx.drawImage(img, 0, 0, w, h);
     iD = rx.getImageData(0, 0, w, h);
     mD = new Float32Array(w * h);
     compE(); draw(null);
-    document.getElementById('os').textContent = `${img.width}×${img.height}`;
+    document.getElementById('os').textContent = `${img.naturalWidth || img.width}×${img.naturalHeight || img.height}`;
     document.getElementById('cs').textContent = `${w}×${h}`;
     document.getElementById('rm').textContent = '0';
     document.getElementById('rst').disabled = false;
+    document.getElementById('export').disabled = false;
+    document.getElementById('empty').hidden = true;
+    document.getElementById('cr').max = Math.max(1, w - 1);
+    document.getElementById('cr').value = Math.min(parseInt(document.getElementById('cr').value), w - 1);
+    document.getElementById('cc').textContent = document.getElementById('cr').value;
+    document.getElementById('runState').textContent = scale < 1 ? `已降采样到 ${w}×${h}` : '准备就绪';
+    setActiveView('result');
+    requestAnimationFrame(fitAllViews);
     document.getElementById('cv').disabled = false;
-    document.getElementById('cv').textContent = '移除';
+    document.getElementById('cv').textContent = '开始处理';
   }
 
   // ---- controls ----
@@ -264,29 +214,206 @@
     if (carving) { paused = true; return; }
     if (!iD) return;
     carving = true; paused = false;
-    document.getElementById('cv').textContent = '暂停';
+    document.getElementById('cv').textContent = '暂停处理';
     const n = parseInt(document.getElementById('cr').value);
     st(n, n);
   });
   document.getElementById('rst').addEventListener('click', () => { paused = true; init(); });
 
+  let previewSeam = null;
   function st(rem, total) {
     if (paused || rem <= 0 || iD.width <= 1) {
       carving = false;
-      document.getElementById('cv').textContent = '移除';
-      draw(null);
+      document.getElementById('cv').textContent = '开始处理';
+      if (!previewSeam) draw(null);
+      document.getElementById('runState').textContent = rem <= 0 ? '处理完成' : '已暂停';
       return;
     }
     const spd = parseInt(document.getElementById('sr').value);
-    const batch = spd >= 8 ? 3 : 1;
-    const ms = [200, 150, 100, 60, 30, 15, 8, 4, 2, 0][spd - 1];
-    let ls = null;
-    for (let b = 0; b < batch && rem - b > 0 && iD.width > 1; b++) { ls = findS(); rmS(ls); }
-    draw(ls);
-    document.getElementById('rm').textContent = total - rem + batch;
+    const batch = spd >= 9 ? 4 : spd >= 7 ? 2 : 1;
+    const count = Math.min(batch, rem, iD.width - 1);
+
+    // Remove the seam that was shown in the previous frame first. This keeps
+    // the highlighted path valid for the image beneath it instead of drawing
+    // old coordinates over an already-shrunk image.
+    let removed = 0;
+    if (previewSeam) { rmS(previewSeam); previewSeam = null; removed++; }
+    while (removed < count && rem - removed > 0 && iD.width > 1) {
+      const seam = findS(); rmS(seam); removed++;
+    }
+    rem -= removed;
+    previewSeam = rem > 0 && iD.width > 1 ? findS() : null;
+    draw(previewSeam);
+    document.getElementById('rm').textContent = total - rem;
     document.getElementById('cs').textContent = `${iD.width}×${iD.height}`;
-    setTimeout(() => st(rem - batch, total), ms);
+    document.getElementById('runState').textContent = `处理中 · ${total - rem}/${total}`;
+    setTimeout(() => st(rem, total), Math.max(32, [240,180,130,90,65,48,40,36,32,32][spd - 1]));
   }
+
+  // ---- workspace interaction ----
+  let activeView = 'result', resizing = null, panning = null, startX = 0, startY = 0;
+  const stage = document.getElementById('stage');
+  const layers = [...document.querySelectorAll('.canvas-layer')];
+  const viewState = Object.fromEntries(layers.map(l => [l.id, { zoom: 1, panX: 0, panY: 0 }]));
+  const canvasByView = { energy: ec, seam: sc, result: rc };
+  function viewIdFromEvent(e) {
+    const layer = e.target.closest?.('.canvas-layer');
+    if (layer && viewState[layer.id]) return layer.id;
+    const pane = e.target.closest?.('.compare-pane');
+    return pane?.querySelector('.canvas-layer')?.id || activeView;
+  }
+  function updateZoomLabel() {
+    document.getElementById('zoomLabel').textContent = `${Math.round(viewState[activeView].zoom * 100)}%`;
+  }
+  function clearActiveView() {
+    stage.querySelectorAll('.compare-pane').forEach(pane => pane.classList.remove('active'));
+  }
+  function setActiveView(id) {
+    if (!viewState[id]) return;
+    activeView = id;
+    stage.querySelectorAll('.compare-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.querySelector('.canvas-layer')?.id === id);
+    });
+    updateZoomLabel();
+  }
+  function applyView(id) {
+    if (!iD) return;
+    const ids = id ? [id] : Object.keys(viewState);
+    ids.forEach(viewId => {
+      const v = viewState[viewId];
+      const c = canvasByView[viewId];
+      const layer = document.getElementById(viewId);
+      c.style.width = `${c.width * v.zoom}px`;
+      c.style.height = `${c.height * v.zoom}px`;
+      layer.style.transform = '';
+      c.style.transform = `translate(${v.panX}px,${v.panY}px)`;
+    });
+    updateZoomLabel();
+  }
+  function fitView(id = activeView) {
+    if (!iD || !viewState[id]) return;
+    const viewport = document.getElementById(id);
+    const v = viewState[id];
+    v.zoom = Math.min((viewport.clientWidth - 32) / iD.width, (viewport.clientHeight - 32) / iD.height, 1);
+    v.zoom = Math.max(.05, v.zoom);
+    v.panX = 0;
+    v.panY = 0;
+    setActiveView(id);
+    applyView(id);
+  }
+  function fitAllViews() {
+    Object.keys(viewState).forEach(id => fitView(id));
+    setActiveView('result');
+  }
+  function setZoom(next, id = activeView) {
+    if (!iD || !viewState[id]) return;
+    setActiveView(id);
+    viewState[id].zoom = Math.max(.05, Math.min(8, next));
+    applyView(id);
+  }
+  document.getElementById('zoomIn').onclick = () => setZoom(viewState[activeView].zoom * 1.25);
+  document.getElementById('zoomOut').onclick = () => setZoom(viewState[activeView].zoom / 1.25);
+  document.getElementById('zoomFit').onclick = () => fitView(activeView);
+  document.getElementById('zoom100').onclick = () => { const v = viewState[activeView]; v.zoom = 1; v.panX = 0; v.panY = 0; applyView(activeView); };
+  document.addEventListener('pointerdown', e => {
+    if (e.target.closest('.compare-pane') || e.target.closest('.zoom-tools')) return;
+    clearActiveView();
+  }, true);
+  stage.addEventListener('wheel', e => {
+    if (!iD) return;
+    e.preventDefault();
+    const id = viewIdFromEvent(e);
+    setZoom(viewState[id].zoom * (e.deltaY < 0 ? 1.12 : .89), id);
+  }, {passive:false});
+  stage.addEventListener('pointerdown', e => {
+    if (!iD || e.target.classList.contains('splitter') || (mm !== 'none' && e.target === ec)) return;
+    const id = viewIdFromEvent(e);
+    setActiveView(id);
+    const v = viewState[id];
+    panning = id;
+    startX = e.clientX - v.panX;
+    startY = e.clientY - v.panY;
+    stage.classList.add('panning');
+  });
+  window.addEventListener('pointermove', e => {
+    if (!panning) return;
+    const v = viewState[panning];
+    v.panX = e.clientX - startX;
+    v.panY = e.clientY - startY;
+    applyView(panning);
+  });
+  window.addEventListener('pointerup', () => { panning = null; stage.classList.remove('panning'); });
+  const splitV = document.getElementById('splitV');
+  const splitH = document.getElementById('splitH');
+  function setSplitFromPointer(e) {
+    const r = stage.getBoundingClientRect();
+    if (resizing === 'v') {
+      const pct = Math.max(24, Math.min(76, ((e.clientX - r.left) / r.width) * 100));
+      stage.style.setProperty('--split-x', `${pct}%`);
+    } else if (resizing === 'h') {
+      const pct = Math.max(26, Math.min(74, ((e.clientY - r.top) / r.height) * 100));
+      stage.style.setProperty('--split-y', `${pct}%`);
+    }
+  }
+  splitV.addEventListener('pointerdown', e => { resizing = 'v'; splitV.classList.add('active'); stage.classList.add('resizing'); e.preventDefault(); });
+  splitH.addEventListener('pointerdown', e => { resizing = 'h'; splitH.classList.add('active'); stage.classList.add('resizing'); e.preventDefault(); });
+  window.addEventListener('pointermove', e => { if (!resizing) return; setSplitFromPointer(e); });
+  window.addEventListener('pointerup', () => { resizing = null; splitV.classList.remove('active'); splitH.classList.remove('active'); stage.classList.remove('resizing'); });
+  window.addEventListener('resize', () => { if (iD) fitAllViews(); });
+  document.getElementById('sr').addEventListener('input', e => document.getElementById('speedValue').textContent=e.target.value);
+  document.getElementById('bs').addEventListener('input', e => document.getElementById('brushValue').textContent=`${e.target.value} px`);
+  document.getElementById('export').addEventListener('click', () => {
+    if (!iD) return;
+    const out = document.createElement('canvas');
+    out.width = exportW || iD.width;
+    out.height = exportH || iD.height;
+    const ox = out.getContext('2d');
+    ox.clearRect(0, 0, out.width, out.height);
+
+    const src = document.createElement('canvas');
+    src.width = iD.width;
+    src.height = iD.height;
+    src.getContext('2d').putImageData(iD, 0, 0);
+
+    const drawW = Math.round(iD.width / inputScale);
+    const drawH = Math.round(iD.height / inputScale);
+    const offsetX = Math.round((out.width - drawW) / 2);
+    const offsetY = Math.round((out.height - drawH) / 2);
+    ox.drawImage(src, offsetX, offsetY, drawW, drawH);
+
+    const a = document.createElement('a');
+    a.download = 'seam-carved.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  });
+  ['dragenter','dragover'].forEach(type => stage.addEventListener(type, e => { e.preventDefault(); stage.style.outline='2px solid var(--accent)'; }));
+  ['dragleave','drop'].forEach(type => stage.addEventListener(type, e => { e.preventDefault(); stage.style.outline=''; }));
+  stage.addEventListener('drop', e => { const f=e.dataTransfer.files[0]; if (!f || !f.type.startsWith('image/')) return; const dt=new DataTransfer(); dt.items.add(f); document.getElementById('fi').files=dt.files; document.getElementById('fi').dispatchEvent(new Event('change')); });
+
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
